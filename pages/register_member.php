@@ -28,31 +28,31 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             $photoUrl = '';
         }
 
-        // Calculate next payment date based on the package
+        // Calculate expiry date based on the package
         $currentDate = new DateTime();
         switch ($package) {
             case 'monthly':
-                $nextPaymentDate = $currentDate->modify('+1 month')->format('Y-m-d');
+                $expiryDate = $currentDate->modify('+1 month')->format('Y-m-d');
                 break;
             case 'quarterly':
-                $nextPaymentDate = $currentDate->modify('+3 months')->format('Y-m-d');
+                $expiryDate = $currentDate->modify('+3 months')->format('Y-m-d');
                 break;
             case 'yearly':
-                $nextPaymentDate = $currentDate->modify('+1 year')->format('Y-m-d');
+                $expiryDate = $currentDate->modify('+1 year')->format('Y-m-d');
                 break;
             default:
-                $nextPaymentDate = $currentDate->format('Y-m-d');
+                $expiryDate = $currentDate->format('Y-m-d');
         }
 
         // Save member details including the photo
-        $query = "INSERT INTO members (name, phone, package, photo) VALUES ('$name', '$phone', '$package', '$photoUrl')";
+        $query = "INSERT INTO members (name, phone, package, photo, expiry_date) VALUES ('$name', '$phone', '$package', '$photoUrl', '$expiryDate')";
         if (mysqli_query($conn, $query)) {
             // Get the member ID
             $memberId = mysqli_insert_id($conn);
 
             // Record the payment
             $amount = ($package == 'monthly') ? 50 : (($package == 'quarterly') ? 140 : 500); // Example amounts
-            $paymentQuery = "INSERT INTO payments (member_id, amount, payment_date, next_payment_date) VALUES ('$memberId', '$amount', NOW(), '$nextPaymentDate')";
+            $paymentQuery = "INSERT INTO payments (member_id, amount, payment_date, next_payment_date) VALUES ('$memberId', '$amount', NOW(), '$expiryDate')";
             mysqli_query($conn, $paymentQuery);
 
             echo "<p>Member registered successfully!</p>";
