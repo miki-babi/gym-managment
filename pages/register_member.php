@@ -8,49 +8,57 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $package = $_POST['package'];
     $photo = $_FILES['photo'];
 
-    // Generate a unique filename for the photo
-    $uniqueId = time() . '-' . preg_replace('/\s+/', '-', strtolower($name));
-    $photoExtension = pathinfo($photo['name'], PATHINFO_EXTENSION);
-    $photoFilename = $uniqueId . '.' . $photoExtension;
-    $photoPath = '../images/' . $photoFilename;
+    // Check if a member with the same phone number already exists
+    $checkQuery = "SELECT * FROM members WHERE phone = '$phone'";
+    $result = mysqli_query($conn, $checkQuery);
 
-    // Handle photo upload
-    if (move_uploaded_file($photo['tmp_name'], $photoPath)) {
-        $photoUrl = '/images/' . $photoFilename;
+    if (mysqli_num_rows($result) > 0) {
+        echo "<p>Error: A member with this phone number already exists.</p>";
     } else {
-        $photoUrl = '';
-    }
+        // Generate a unique filename for the photo
+        $uniqueId = time() . '-' . preg_replace('/\s+/', '-', strtolower($name));
+        $photoExtension = pathinfo($photo['name'], PATHINFO_EXTENSION);
+        $photoFilename = $uniqueId . '.' . $photoExtension;
+        $photoPath = '../images/' . $photoFilename;
 
-    // Calculate next payment date based on the package
-    $currentDate = new DateTime();
-    switch ($package) {
-        case 'monthly':
-            $nextPaymentDate = $currentDate->modify('+1 month')->format('Y-m-d');
-            break;
-        case 'quarterly':
-            $nextPaymentDate = $currentDate->modify('+3 months')->format('Y-m-d');
-            break;
-        case 'yearly':
-            $nextPaymentDate = $currentDate->modify('+1 year')->format('Y-m-d');
-            break;
-        default:
-            $nextPaymentDate = $currentDate->format('Y-m-d');
-    }
+        // Handle photo upload
+        if (move_uploaded_file($photo['tmp_name'], $photoPath)) {
+            $photoUrl = '/images/' . $photoFilename;
+        } else {
+            $photoUrl = '';
+        }
 
-    // Save member details including the photo
-    $query = "INSERT INTO members (name, phone, package, photo) VALUES ('$name', '$phone', '$package', '$photoUrl')";
-    if (mysqli_query($conn, $query)) {
-        // Get the member ID
-        $memberId = mysqli_insert_id($conn);
+        // Calculate next payment date based on the package
+        $currentDate = new DateTime();
+        switch ($package) {
+            case 'monthly':
+                $nextPaymentDate = $currentDate->modify('+1 month')->format('Y-m-d');
+                break;
+            case 'quarterly':
+                $nextPaymentDate = $currentDate->modify('+3 months')->format('Y-m-d');
+                break;
+            case 'yearly':
+                $nextPaymentDate = $currentDate->modify('+1 year')->format('Y-m-d');
+                break;
+            default:
+                $nextPaymentDate = $currentDate->format('Y-m-d');
+        }
 
-        // Record the payment
-        $amount = ($package == 'monthly') ? 50 : (($package == 'quarterly') ? 140 : 500); // Example amounts
-        $paymentQuery = "INSERT INTO payments (member_id, amount, payment_date, next_payment_date) VALUES ('$memberId', '$amount', NOW(), '$nextPaymentDate')";
-        mysqli_query($conn, $paymentQuery);
+        // Save member details including the photo
+        $query = "INSERT INTO members (name, phone, package, photo) VALUES ('$name', '$phone', '$package', '$photoUrl')";
+        if (mysqli_query($conn, $query)) {
+            // Get the member ID
+            $memberId = mysqli_insert_id($conn);
 
-        echo "<p>Member registered successfully!</p>";
-    } else {
-        echo "<p>Error: " . mysqli_error($conn) . "</p>";
+            // Record the payment
+            $amount = ($package == 'monthly') ? 50 : (($package == 'quarterly') ? 140 : 500); // Example amounts
+            $paymentQuery = "INSERT INTO payments (member_id, amount, payment_date, next_payment_date) VALUES ('$memberId', '$amount', NOW(), '$nextPaymentDate')";
+            mysqli_query($conn, $paymentQuery);
+
+            echo "<p>Member registered successfully!</p>";
+        } else {
+            echo "<p>Error: " . mysqli_error($conn) . "</p>";
+        }
     }
 }
 ?>
@@ -69,9 +77,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     <input type="submit" value="Register">
 </form>
 
-
 <button>
-<a href="http://localhost/gym-managment/pages/register_locker.php" style="text-decoration: none ;">Register Locker</a>
-
+<a href="http://localhost/gym-management/pages/register_locker.php" style="text-decoration: none;">Register Locker</a>
 </button>
+
 <?php include('../includes/footer.php'); ?>
